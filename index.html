@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda Moderne</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            perspective: 1000px;
+        }
+        .calendar {
+            width: 360px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            transition: transform 0.5s;
+            transform: rotateY(0deg);
+        }
+        .calendar:hover {
+            transform: rotateY(15deg);
+        }
+        .calendar-header {
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid #0056b3;
+            box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .calendar-header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .calendar-header .nav-buttons {
+            margin-top: 10px;
+        }
+        .calendar-header .nav-buttons button {
+            background-color: #0056b3;
+            border: none;
+            padding: 10px;
+            color: #ffffff;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        .calendar-header .nav-buttons button:hover {
+            background-color: #003f88;
+            transform: scale(1.05);
+        }
+        .calendar-body {
+            padding: 20px;
+            background: linear-gradient(135deg, #f4f4f4, #ffffff);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+        }
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            font-size: 16px;
+            text-align: center;
+        }
+        .calendar-days div {
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        .calendar-days div:hover {
+            background-color: #e0e0e0;
+            transform: scale(1.1);
+        }
+        .calendar-days div.active {
+            background-color: #007bff;
+            color: #ffffff;
+            transform: scale(1.1);
+        }
+        .event-list {
+            margin-top: 20px;
+            list-style: none;
+            padding: 0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .event-list li {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.3s;
+        }
+        .event-list li:hover {
+            transform: translateY(-5px);
+        }
+        .event-list li button {
+            background-color: #dc3545;
+            border: none;
+            padding: 5px 10px;
+            color: #ffffff;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .event-list li button:hover {
+            background-color: #c82333;
+        }
+        .add-event {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .add-event input[type="text"] {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            transition: border-color 0.3s;
+        }
+        .add-event input[type="text"]:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        .add-event button {
+            padding: 10px;
+            background-color: #28a745;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        .add-event button:hover {
+            background-color: #218838;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+
+<div class="calendar">
+    <div class="calendar-header">
+        <h2 id="monthYear"></h2>
+        <div class="nav-buttons">
+            <button onclick="previousMonth()">&#9664; Mois Précédent</button>
+            <button onclick="nextMonth()">Mois Suivant &#9654;</button>
+        </div>
+    </div>
+    <div class="calendar-body">
+        <div class="calendar-days" id="calendarDays">
+            <!-- Les jours seront générés ici -->
+        </div>
+        <ul class="event-list" id="eventList">
+            <!-- Les événements seront listés ici -->
+        </ul>
+        <div class="add-event">
+            <input type="text" id="eventInput" placeholder="Ajouter un événement">
+            <button onclick="addEvent()">Ajouter</button>
+        </div>
+        <a href="../index.html"><h1>🔙</h1></a>
+    </div>
+</div>
+
+<script>
+    let currentMonth = new Date().getMonth();
+    let currentYear = new Date().getFullYear();
+    let selectedDate = new Date().getDate();
+
+    function updateCalendar() {
+        const monthYearDisplay = document.getElementById('monthYear');
+        const calendarDays = document.getElementById('calendarDays');
+
+        // Obtenir le nom du mois et l'année actuelle
+        const options = { year: 'numeric', month: 'long' };
+        monthYearDisplay.textContent = new Date(currentYear, currentMonth).toLocaleDateString('fr-FR', options);
+
+        // Effacer les jours précédents
+        calendarDays.innerHTML = '';
+
+        // Obtenir le premier jour du mois
+        const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+        // Remplir les jours vides avant le début du mois
+        for (let i = 0; i < firstDay; i++) {
+            const emptyCell = document.createElement('div');
+            calendarDays.appendChild(emptyCell);
+        }
+
+        // Remplir les jours du mois
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayCell = document.createElement('div');
+            dayCell.textContent = day;
+            if (day === selectedDate) {
+                dayCell.classList.add('active');
+            }
+            dayCell.onclick = function() {
+                selectedDate = day;
+                updateCalendar();
+            };
+            calendarDays.appendChild(dayCell);
+        }
+    }
+
+    function addEvent() {
+        const eventInput = document.getElementById('eventInput');
+        const eventList = document.getElementById('eventList');
+        const eventText = eventInput.value.trim();
+
+        if (eventText) {
+            const eventItem = document.createElement('li');
+            eventItem.textContent = `${selectedDate} ${new Date(currentYear, currentMonth).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}: ${eventText}`;
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Supprimer';
+            deleteButton.onclick = function() {
+                eventItem.remove();
+            };
+
+            eventItem.appendChild(deleteButton);
+            eventList.appendChild(eventItem);
+
+            eventInput.value = ''; // Effacer l'entrée après l'ajout
+        }
+    }
+
+    function previousMonth() {
+        currentMonth--;
+        if (currentMonth < 0) {
+            currentMonth = 11;
+            currentYear--;
+        }
+        updateCalendar();
+    }
+
+    function nextMonth() {
+        currentMonth++;
+        if (currentMonth > 11) {
+            currentMonth = 0;
+            currentYear++;
+        }
+        updateCalendar();
+    }
+
+    // Initialiser le calendrier au chargement de la page
+    window.onload = function() {
+        updateCalendar();
+    };
+</script>
+
+</body>
+</html>
